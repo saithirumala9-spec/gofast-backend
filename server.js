@@ -1,4 +1,4 @@
-ew`require('dotenv').config();
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
@@ -21,28 +21,30 @@ try {
   });
   console.log('✅ Firebase initialized');
 } catch (error) {
-  console.error('❌ Firebase error:', error.message);
+  console.error('❌ Firebase init error:', error.message);
 }
 
 // MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/gofast';
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('✅ MongoDB connected'))
-.catch(err => console.error('❌ MongoDB error:', err));
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(err => console.error('❌ MongoDB error:', err));
 
 // Socket.IO
 const io = socketIO(server, {
-  cors: { origin: "*", methods: ["GET", "POST"] }
+  cors: { origin: "*" }
 });
 
 io.on('connection', (socket) => {
-  console.log('🔌 Client connected:', socket.id);
-  socket.on('driver:location:update', (data) => socket.broadcast.emit('driver:location:updated', data));
-  socket.on('ride:request', (data) => io.emit('ride:new:request', data));
-  socket.on('ride:accept', (data) => io.emit('ride:accepted', data));
+  console.log('🔌 User connected:', socket.id);
+  
+  socket.on('driver:location', (data) => {
+    io.emit('driver:location:update', data);
+  });
+  
+  socket.on('ride:request', (data) => {
+    io.emit('ride:new', data);
+  });
+  
   socket.on('ride:status:update', (data) => io.emit('ride:status:changed', data));
   socket.on('disconnect', () => console.log('🔌 Disconnected'));
 });
@@ -66,5 +68,5 @@ app.get('/health', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-console.log(GoFast Backend running on port ${PORT}); 
+  console.log(`GoFast Backend running on port ${PORT}`);
 });
